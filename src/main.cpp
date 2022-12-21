@@ -1,6 +1,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <math.h>
+#include "shader.h"
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
@@ -10,27 +12,6 @@
 int success;
 char infoLog[512];
 GLboolean wireframe = GL_FALSE;
-
-const char *vertexShaderSource = "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "void main()\n"        
-    "{\n"
-    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-    "}\0";
-
-const char *fragmentShaderSourceOrange = "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main()\n"
-    "{\n"
-    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-    "}\0";
-
-const char *fragmentShaderSourceYellow = "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main()\n"
-    "{\n"
-    "   FragColor = vec4(1.0f, 1.0f, 0.2f, 1.0f);\n"
-    "}\0";
 
 typedef struct color
 {
@@ -52,15 +33,10 @@ typedef struct triangle
 color clearColor = {0, 0, 0, 0};
 
 float vertices1[] = {
-     -0.8f, -0.4f, 0.0f,
-     -0.4f,  0.4f, 0.0f,
-      0.0f, -0.4f, 0.0f,    
-};
+     -0.5f, -0.5f, 0.0f,    1.0f, 0.0f, 0.0f,
+      0.0f,  0.5f, 0.0f,    0.0f, 1.0f, 0.0f,
+      0.5f, -0.5f, 0.0f,    0.0f, 0.0f, 1.0f
 
-float vertices2[] = {
-      0.0f, -0.4f, 0.0f,
-      0.4f,  0.4f, 0.0f,
-      0.8f, -0.4f, 0.0f     
 };
 
 
@@ -157,53 +133,6 @@ GLFWwindow *initWindow(int width, int height, char* name)
     return window;
 }
 
-unsigned int createVertexShader()
-{
-    unsigned vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if(!success)
-    {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR: Vertex Shader compilation failed\n" << infoLog << std::endl;
-    }
-
-    return vertexShader;
-}
-
-unsigned int createFragmentShader(const char *src)
-{
-
-    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &src, NULL);
-    glCompileShader(fragmentShader);
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if(!success)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR: Fragment Shader compilation failed\n" << infoLog << std::endl;
-    }
-    return fragmentShader;
-
-}
-
-unsigned int createShaderProgram(unsigned int vertexShader, unsigned int fragmentShader)
-{
-    unsigned int shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if(!success) 
-    {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERROR: Shader Program creation failed\n" << infoLog << std::endl;
-    }
-
-    return shaderProgram;
-}
-
 int main(void)
 {
     if(initContext() != 0)
@@ -225,42 +154,18 @@ int main(void)
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO1);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices1), vertices1, GL_STATIC_DRAW);      //Preenche buffer
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);   //Organiza buffer
-    glEnableVertexAttribArray(0);                                                   //Habilita buffer
-    // -- Vertex Buffer --
-// VERTEX ARRAY BIND =================================================
-
-    unsigned int VAO2;
-    glGenVertexArrays(1, &VAO2);
-    glBindVertexArray(VAO2);
-// VERTEX ARRAY BIND =================================================
-    //Vertex Buffer
-    unsigned int VBO2;
-    glGenBuffers(1, &VBO2);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO2);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);      //Preenche buffer
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);   //Organiza buffer
-    glEnableVertexAttribArray(0);                                                   //Habilita buffer
+    
+    //Position
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);   //Organiza buffer
+    glEnableVertexAttribArray(0);
+    //Color
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));   //Organiza buffer
+    glEnableVertexAttribArray(1);                                                   //Habilita buffer
+                                               //Habilita buffer
     // -- Vertex Buffer --
 // VERTEX ARRAY BIND =================================================
     
-    //Vertex Shaders
-    unsigned int vertexShader = createVertexShader();
-    // -- Vertex Shaders --
-    
-    //Fragment Shaders
-    unsigned int fragmentShaderOrange = createFragmentShader(fragmentShaderSourceOrange);
-    unsigned int fragmentShaderYellow = createFragmentShader(fragmentShaderSourceYellow);
-    // -- Fragment Shaders --
-
-    //Shader Program
-    unsigned int shaderProgramOrange = createShaderProgram(vertexShader, fragmentShaderOrange);
-    unsigned int shaderProgramYellow = createShaderProgram(vertexShader, fragmentShaderYellow);
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShaderOrange);  
-    glDeleteShader(fragmentShaderYellow);  
-    // -- Shader Program --
+    Shader ourShader("../shaders/shader.vs", "../shaders/shader.fs");
 
     while(!glfwWindowShouldClose(window))
     {
@@ -268,14 +173,13 @@ int main(void)
         processInput(window);  
         // ----
         //Rendering
+        float timeValue = glfwGetTime();
+        float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
+        ourShader.use();
+        ourShader.set4Float("someUniform",1.0f, greenValue, 1.0f, 1.0f);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        glUseProgram(shaderProgramOrange);
-        glBindVertexArray(VAO1);
         glDrawArrays(GL_TRIANGLES, 0, 3);   
-        glUseProgram(shaderProgramYellow); 
-        glBindVertexArray(VAO2);
-        glDrawArrays(GL_TRIANGLES, 0, 3);    
         //--Rendering--
 
         //Events
